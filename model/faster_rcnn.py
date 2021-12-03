@@ -275,7 +275,10 @@ class FasterRCNN(nn.Module):
         return self.optimizer
 
     def save(self, save_path):
-        torch.save(self.state_dict(), f'weights/{save_path}')
+        save_dict = dict()
+        save_dict['model'] = self.state_dict()
+        save_dict['optimizer'] = self.optimizer.state_dict()
+        torch.save(save_dict, f'weights/{save_path}')
         return save_path
 
     def load(self, path):
