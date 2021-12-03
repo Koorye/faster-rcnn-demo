@@ -144,7 +144,8 @@ class FasterRCNN(nn.Module):
         # 第1维: (128,) 每个元素为每个roi的最接近的标注框的类别 -> 0~20
         # 从而提取每个roi对应类别的修正系数loc
         # (128,4)
-        head_loc = head_loc[torch.arange(n_sample).long().to(cfg.device), gt_head_label]
+        head_loc = head_loc[torch.arange(
+            n_sample).long().to(cfg.device), gt_head_label]
 
         # 计算roi_head的回归损失
         roi_loc_loss = fast_rcnn_loc_loss(
@@ -156,7 +157,6 @@ class FasterRCNN(nn.Module):
         losses = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss
 
         return losses
-
 
     @torch.no_grad()
     def predict(self, imgs, sizes=None):
@@ -207,10 +207,10 @@ class FasterRCNN(nn.Module):
 
             # 每张图片的预测结果 (m为预测目标的个数)
             # 跳过cls_id为0的pred_bbox与pred_scores，因为它是背景类
-            # (m,4) (m,) (m,) 
+            # (m,4) (m,) (m,)
             pred_boxes, pred_label, pred_score = self._suppress(
                 pred_boxes[:, 1:, :], pred_scores[:, 1:])
-            
+
             boxes.append(pred_boxes)
             labels.append(pred_label)
             scores.append(pred_score)
@@ -273,11 +273,12 @@ class FasterRCNN(nn.Module):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] *= decay
         return self.optimizer
-    
+
     def save(self, save_path=None):
-        save_dict = dict()
-        save_dict['model'] = self.state_dict()
-        save_dict['optimizer'] = self.optimizer.state_dict()
+        save_dict = {
+            'model': self.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+        }
 
         save_path = 'weights/map_%s.pt' % save_path
 
