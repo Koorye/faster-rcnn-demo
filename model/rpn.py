@@ -12,7 +12,6 @@ class RPN(nn.Module):
         super(RPN, self).__init__()
 
         self.feat_stride = 16
-        self.device = cfg.device
 
         self.ratios = torch.Tensor([.5, 1, 2])
         self.anchor_scales = torch.Tensor([8, 16, 32])
@@ -100,7 +99,7 @@ class RPN(nn.Module):
         px = self.feat_stride / 2.
 
         # (n_anchors,4) -> (xmin,ymin,xmax,ymax)
-        self.anchor_base = torch.zeros((ratio_num * scale_num, 4), dtype=torch.float32,device=self.device)
+        self.anchor_base = torch.zeros((ratio_num * scale_num, 4), dtype=torch.float32, device=cfg.device)
         # 遍历每种纵横比、每种尺寸
         for i in range(ratio_num):
             for j in range(scale_num):
@@ -126,8 +125,8 @@ class RPN(nn.Module):
 
         # 0 ~ h*16，步长为16 -> [0,16,32,...,(h-1)*16] (h,)
         # 0 ~ w*16，步长为16 -> [0,16,32,...,(w-1)*16] (w,)
-        shift_y = torch.arange(0, feature_h * self.feat_stride, self.feat_stride, dtype=torch.float32,device=self.device)
-        shift_x = torch.arange(0, feature_w * self.feat_stride, self.feat_stride, dtype=torch.float32,device=self.device)
+        shift_y = torch.arange(0, feature_h * self.feat_stride, self.feat_stride, dtype=torch.float32,device=cfg.device)
+        shift_x = torch.arange(0, feature_w * self.feat_stride, self.feat_stride, dtype=torch.float32,device=cfg.device)
 
         # (h,w)
         shift_y, shift_x = torch.meshgrid(shift_y, shift_x)

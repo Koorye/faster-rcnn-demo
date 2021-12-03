@@ -182,35 +182,39 @@ class FasterRCNN(nn.Module):
             # *chenyun版本的代码中是有对训练阶段的roi_locs进行标准化的,然后再在非训练状态下进行逆向标准化
             roi_locs = (roi_locs * self.std + self.mean)
 
-            # >>>
-            # [300, self.n_class*4] -> [300, self.n_class, 4]
+            # (300,n_class*4) -> (300,n_class,4)
             roi_locs = roi_locs.view(-1, self.n_class, 4)
-            # [300, 1, 4] -> [300, self.n_class, 4]
+            # (300,4) -> (300,1,4) -> (300,n_class,4)
             roi = roi.view(-1, 1, 4).expand_as(roi_locs)
-            # 将坐标放缩会原始尺寸 chenyun版本是将缩放这一步放到修正坐标之前,我觉得不太合理,就移到修正之后了.精度没变
+
+            # 将坐标放缩回原始尺寸
+            # *chenyun版本是将缩放这一步放到修正坐标之前
+            # (300,n_class,4) -> (300*n_class,4)
             pred_boxes = loc2box(roi.reshape(-1, 4),
                                  roi_locs.reshape(-1, 4)) / scale
-            pred_boxes = pred_boxes  # torch.Size([5700, 4])
-            # (300*self.n_class, 4) -> (300, self.n_class, 4)
+
+            # (300*n_class,4)
+            pred_boxes = pred_boxes
+            # (300*n_class,4) -> (300,n_class,4)
             pred_boxes = pred_boxes.view(-1, self.n_class, 4)
+
             # 限制预测框的坐标范围
             pred_boxes[:, :, 0::2].clamp_(min=0, max=size[0])
             pred_boxes[:, :, 1::2].clamp_(min=0, max=size[1])
+
             # 对roi_head网络预测的每类进行softmax处理
             pred_scores = F.softmax(roi_scores, dim=1)
 
-            # 每张图片的预测结果(m为预测目标的个数)     # (m, 4)  (m,)  (m,) 跳过cls_id为0的pred_bbox与pred_scores,因为它是背景类
+            # 每张图片的预测结果 (m为预测目标的个数)
+            # 跳过cls_id为0的pred_bbox与pred_scores，因为它是背景类
+            # (m,4) (m,) (m,) 
             pred_boxes, pred_label, pred_score = self._suppress(
                 pred_boxes[:, 1:, :], pred_scores[:, 1:])
+            
             boxes.append(pred_boxes)
-            #   [array([[302.97562, 454.60007, 389.80545, 504.98404],
-            #           [304.9767 , 550.0696 , 422.17258, 620.1692 ],
-            #           [375.89203, 540.1559 , 422.39435, 684.8439 ],
-            #           [293.0167, 349.53333, 360.0981, 386.8974]], dtype = float32)]
             labels.append(pred_label)
-            #   [array([ 0,  0,  15, 15])]
             scores.append(pred_score)
-            #   [array([0.80108094, 0.80108094, 0.80108094, 0.80108094], dtype=float32)]
+
         return boxes, labels, scores
 
     def _suppress(self, pred_boxes, pred_scores):
@@ -234,15 +238,17 @@ class FasterRCNN(nn.Module):
         pred_boxes = pred_boxes[score_keep].reshape(-1, 4)
         # (300,n_class,)
         pred_scores = pred_scores[score_keep].flatten()
-        # 
+        # (300,)
         cls_ids = cls_ids[score_keep].flatten()
 
-        # 这里使用batch_nms速度会快一些,A100上 35/sec -> 41/sec
+        # 对pred_boxes进行NMS过滤
+        # *这里使用batch_nms速度会快一些，A100上 35/sec -> 41/sec
         keep = batched_nms(pred_boxes.cpu(), pred_scores.cpu(),
                            cls_ids.cpu(), self.nms_thresh)
         box = pred_boxes[keep].cpu().numpy()
         score = pred_scores[keep].cpu().numpy()
         label = cls_ids[keep].cpu().numpy()
+
         return box, label, score
 
     def get_optim(self):
