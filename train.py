@@ -12,28 +12,28 @@ from model.util.eval import Eval
 
 if __name__ == '__main__':
     # 准备训练与验证数据
-    trainset = ListDataset(cfg, split='train_small', is_train=True)
+    trainset = ListDataset(cfg, split='train', is_train=True)
     dataloader = DataLoader(trainset, batch_size=1,
                             shuffle=True, num_workers=0)
-    testset = ListDataset(cfg, split='val_small', is_train=False)
+    testset = ListDataset(cfg, split='val', is_train=False)
     test_dataloader = DataLoader(
         testset, batch_size=1, num_workers=0, pin_memory=True)
     # 加载模型与权重
     model = FasterRCNN().to(cfg.device)
 
-    if cfg.load_best:
+    cur_epoch = 0
+
+    if cfg.load_model:
         paths = os.listdir('weights')
-        print(paths)
         if len(paths) != 0:
-            best_map = max(list(map(lambda path: float(path.split('_')[1].split('.pt')[0]), paths)))
-            model.load(f'weights/map_{best_map}.pt')
+            last_epoch = max(list(map(lambda path: int(path.split('_')[0].split('epoch')[1]), paths)))
+            last_path = list(filter(lambda path: path.startswith(f'epoch{last_epoch}'), paths))[0]
+            model.load(f'weights/{last_path}.pth')
 
     # 创建visdom可视化端口
     vis = visdom.Visdom(env='Faster RCNN')
 
-    best_map = 0
-
-    for epoch in range(cfg.epoch):
+    for epoch in range(cur_epoch, cfg.epoch):
         model.train()
 
         total_loss = 0
@@ -67,11 +67,8 @@ if __name__ == '__main__':
         vis.line(X=np.array([epoch]), Y=np.array([eval_map]), win='mAP',
                  update=None if epoch == 1 else 'append', opts=dict(title='mAP'))
 
-        # 保存最佳模型
-        if eval_map > best_map:
-           best_map = eval_map
-           best_path = model.save(save_path=str(best_map))
-
-        # 调整学习率
+        # 保存最佳模型并调整学习率
         if epoch % 1 == 0:
+            save_name = f'epoch{epoch}_map{eval_map}.pth'
+            best_path = model.save(save_name)
             model.scale_lr(cfg.lr_decay)

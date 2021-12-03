@@ -22,7 +22,7 @@ class Config:
     lr_decay = .1
     # 初始学习率
     lr = 1e-3
-    epoch = 5
+    epoch = 8
     # 是否使用SGD优化器
     use_sgd = True
 
@@ -34,8 +34,8 @@ class Config:
     max_size = 1000
     min_size = 600
 
-    # 是否加载最优历史模型
-    load_best = True
+    # 是否加载历史模型
+    load_model = True
 
 
 cfg = Config()
