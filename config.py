@@ -34,5 +34,8 @@ class Config:
     max_size = 1000
     min_size = 600
 
+    # 是否加载最优历史模型
+    load_best = True
+
 
 cfg = Config()

@@ -1,12 +1,14 @@
+import numpy as np
+import os
+import torch
+import visdom
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+
 from config import cfg
 from dataset import ListDataset
 from model.faster_rcnn import FasterRCNN
 from model.util.eval import Eval
-from torch.utils.data import DataLoader
-import visdom
-import numpy as np
-import torch
 
 if __name__ == '__main__':
     # 准备训练与验证数据
@@ -18,9 +20,14 @@ if __name__ == '__main__':
         testset, batch_size=1, num_workers=0, pin_memory=True)
     # 加载模型与权重
     model = FasterRCNN().to(cfg.device)
-    # if cfg.load_path:
-    # model.load(cfg.load_path)
-    # print('已加载训练模型')
+
+    if cfg.load_best:
+        paths = os.listdir('weights')
+        print(paths)
+        if len(paths) != 0:
+            best_map = max(list(map(lambda path: float(path.split('_')[1].split('.pt')[0]), paths)))
+            model.load(f'weights/map_{best_map}.pt')
+
     # 创建visdom可视化端口
     vis = visdom.Visdom(env='Faster RCNN')
 
