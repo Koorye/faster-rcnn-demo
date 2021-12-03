@@ -182,6 +182,7 @@ class FasterRCNN(nn.Module):
             # *chenyun版本的代码中是有对训练阶段的roi_locs进行标准化的,然后再在非训练状态下进行逆向标准化
             roi_locs = (roi_locs * self.std + self.mean)
 
+            # >>>
             # [300, self.n_class*4] -> [300, self.n_class, 4]
             roi_locs = roi_locs.view(-1, self.n_class, 4)
             # [300, 1, 4] -> [300, self.n_class, 4]
