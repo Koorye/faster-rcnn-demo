@@ -77,6 +77,9 @@ def box_iou(box_a, box_b):
     return iou
 
 def unmap(data, anchor, inside_index):
+    """
+    
+    """
     if len(data.shape) == 1:
         # 如果是对label进行映射,则默认值为-1(忽略样本)
         ret = torch.full_like(anchor[:,0],fill_value=-1, dtype=torch.int32)
@@ -89,7 +92,9 @@ def unmap(data, anchor, inside_index):
     return ret
 
 def get_inside_index(anchor, h, w):
-    # 返回那些在指定大小的图片内部的anchor索引
+    """
+    筛选在图片内的anchor，即排除超出图片边界的anchor
+    """
     index_inside = torch.nonzero(
         (anchor[:, 0] >= 0) &
         (anchor[:, 1] >= 0) &

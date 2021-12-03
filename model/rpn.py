@@ -32,6 +32,16 @@ class RPN(nn.Module):
         normal_init(self.loc, 0, .01)
 
     def forward(self, x, img_size, scale=1.):
+        """
+        : param x: 输入的特征图 (1,c,h,w)
+        : param img_size: 原始图像的尺寸 (h,w)，创建roi时将限制在原始图像的宽高范围内
+        : param scale: 缩放，原始图像预处理时的缩放倍数
+        : return:
+          rpn_locs: 回归系数 (n_rois,4)
+          rpn_scores: 正负样本的分数 (n_rois,2)
+          rois: ROI框 (n_rois,4)
+          anchors: 原始框 (h*w*9,4)
+        """
         # 特征图的尺寸
         b, c, h, w = x.shape
 
@@ -48,6 +58,7 @@ class RPN(nn.Module):
         # 即每个batch有h*w*9个anchor
         # 每个anchor有4个位置回归信息 (dx,dy,dw,dh)
         rpn_locs = rpn_locs.permute(0, 2, 3, 1).reshape(b, -1, 4)
+        # 每个anchor有2个分数信息 (b,h,w,9*2)
         # (b,18,h,w) -> (b,h,w,18)
         rpn_scores = rpn_scores.permute(0, 2, 3, 1)
 
@@ -66,17 +77,17 @@ class RPN(nn.Module):
         # 限制roi的x,y,w,h范围
         # 按rpn_fg_scores大小截取前n个roi进行NMS
         # 截取前m个roi返回
-        rois, roi_indices = [], []
+        rois = []
         for i in range(b):
+            # (n_rois, 4) -> (x1,y1,x2,y2)
             roi = self.roi_creator(rpn_locs[i].detach(),
                                    rpn_fg_scores[i].detach(),
                                    anchor, img_size, scale=scale)
             rois.append(roi)
-            roi_indices.append(b)
         
         rois = torch.cat(rois, dim=0)
 
-        return rpn_locs, rpn_scores, rois, roi_indices, anchor
+        return rpn_locs, rpn_scores, rois, anchor
     
     def generate_anchor_base(self):
         """

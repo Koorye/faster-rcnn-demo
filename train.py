@@ -35,16 +35,4 @@ if __name__ == '__main__':
             model.optimizer.zero_grad()
             vis.line(X=np.array([cur_ep]), Y=torch.tensor([total_loss/cur_ep]), win='Train Loss',
                     update=None if epoch == 1 else 'append', opts=dict(title='Train Loss'))
-            break
-        
-        model.eval()
-
-        total_loss = 0
-        with torch.no_grad():
-            for index, (img, target_box, target_label, scale) in enumerate(tqdm(test_dataloader)):
-                scale = scale.to(cfg.device)
-                img, target_box, target_label = img.to(cfg.device).float(), target_box.to(cfg.device), target_label.to(cfg.device)
-                loss, _ = model(img, target_box, target_label, scale)
-                total_loss += loss.item()
-            vis.line(X=np.array([epoch]), Y=torch.tensor([total_loss / len(test_dataloader)]), win='Test Loss',
-                    update=None if epoch == 1 else 'append', opts=dict(title='Test Loss'))
+                    

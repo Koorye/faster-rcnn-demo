@@ -6,7 +6,8 @@ from model.util.box_tool import box2loc, box_iou
 
 class ProposalTargetCreator(object):
     """
-    就像类名一样 生成Proposal对应的Target Proposal是由rpn提供的
+    生成Proposal对应的Target
+    Proposal是由rpn提供的
     先把target_box并入到roi中去,计算roi和target_box的iou,并获取每个roi和target_box的最大iou索引roi_argmaxiou 以及最大iou值roi_maxiou
     将 target_box的label通过roi_argmaxiou赋值给roi,并+1(因为0为背景类)
     根据正负样本的iou阈值得出iou中的正负样本索引(共128个)pos_index,neg_index(组成keep_index).并随机舍弃多余的样本

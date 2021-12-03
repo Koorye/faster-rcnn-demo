@@ -29,7 +29,7 @@ class RoICreator:
         :param score: rpn网络分类卷积得出的置信度    (16650,)
         :param anchor: 基础生成的anchor            (16650, 4)
         :param img_size: 网络输入的尺寸 (h,w)
-        :param scale: 原始图片resize到网络输入尺寸的倍数
+        :param scale: 原始图片预处理到网络输入尺寸的倍数
         :return: 经过筛选的roi 当然也可以多返回一个pred_box为是否含有物体的目标置信度
         """
 
@@ -50,6 +50,10 @@ class RoICreator:
         roi[:, 1:4:2].clip_(0, img_size[0])
 
         # 剔除宽高小于min_size的roi
+        # 由于原始图像被缩放了，因此这里的min_size也要进行对应比例的缩放
+        # 例如，原图太大，宽2000 -> 1000
+        # 因此 min_size 16 -> 8
+        # 否则相当于在宽为2000的图像剔除宽高小于2*min_size的roi
         min_size = self.min_size * scale
         ws = roi[:, 2] - roi[:, 0]
         hs = roi[:, 3] - roi[:, 1]
