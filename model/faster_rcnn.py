@@ -273,3 +273,19 @@ class FasterRCNN(nn.Module):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] *= decay
         return self.optimizer
+    
+    def save(self, save_path=None):
+        save_dict = dict()
+        save_dict['model'] = self.state_dict()
+        save_dict['optimizer'] = self.optimizer.state_dict()
+
+        save_path = 'weights/map_%s.pt' % save_path
+
+        torch.save(save_dict, save_path)
+        return save_path
+
+    def load(self, path):
+        state_dict = torch.load(path)
+        self.load_state_dict(state_dict['model'])
+        self.optimizer.load_state_dict(state_dict['optimizer'])
+        return self

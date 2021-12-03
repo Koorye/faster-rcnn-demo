@@ -22,7 +22,7 @@ class Config:
     lr_decay = .1
     # 初始学习率
     lr = 1e-3
-    epoch = 14
+    epoch = 5
     # 是否使用SGD优化器
     use_sgd = True
 
