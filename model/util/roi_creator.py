@@ -68,7 +68,7 @@ class RoICreator:
         score = score[order]
 
         # nms后选取前n_post_nms个
-        keep = nms(roi.cpu(), score.cpu(), self.nms_thresh).to(cfg.device)
+        keep = nms(roi, score, self.nms_thresh).to(cfg.device)
         keep = keep[:n_post_nms]
         roi = roi[keep]
 

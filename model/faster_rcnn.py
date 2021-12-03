@@ -243,8 +243,8 @@ class FasterRCNN(nn.Module):
 
         # 对pred_boxes进行NMS过滤
         # *这里使用batch_nms速度会快一些，A100上 35/sec -> 41/sec
-        keep = batched_nms(pred_boxes.cpu(), pred_scores.cpu(),
-                           cls_ids.cpu(), self.nms_thresh)
+        keep = batched_nms(pred_boxes, pred_scores,
+                           cls_ids, self.nms_thresh)
         box = pred_boxes[keep].cpu().numpy()
         score = pred_scores[keep].cpu().numpy()
         label = cls_ids[keep].cpu().numpy()

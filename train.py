@@ -67,8 +67,11 @@ if __name__ == '__main__':
         vis.line(X=np.array([epoch]), Y=np.array([eval_map]), win='mAP',
                  update=None if epoch == 1 else 'append', opts=dict(title='mAP'))
 
-        # 保存最佳模型并调整学习率
+        # 保存最佳模型
         if epoch % 1 == 0:
             save_name = f'epoch{epoch}_map{eval_map}.pth'
             best_path = model.save(save_name)
+        
+        # 调整学习率
+        if epoch == 9:
             model.scale_lr(cfg.lr_decay)

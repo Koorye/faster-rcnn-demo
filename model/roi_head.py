@@ -49,7 +49,7 @@ class RoIHead(nn.Module):
 
         # (n_rois,c,7,7)
         # 即每个roi都在特征图上进行一次近似的自适应最大值池化
-        pool = self.roi(x.cpu(), rois.cpu()).to(cfg.device)
+        pool = self.roi(x, rois).to(cfg.device)
         # (n_rois,c*7*7)
         pool = pool.reshape(pool.shape[0], -1)
 
