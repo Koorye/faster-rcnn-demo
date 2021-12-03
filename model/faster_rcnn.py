@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torchvision.models import vgg16
+from torchvision.ops import batched_nms
 from config import cfg
 
 from model.roi_head import RoIHead
@@ -55,8 +56,8 @@ class FasterRCNN(nn.Module):
 
         self.optimizer = self.get_optim()
 
-        self.mean = torch.Tensor((0.,0.,0.,0.), device=cfg.device).repeat(self.n_class)[None]
-        self.std = torch.Tensor((.1,.1,.2,.2), device=cfg.device).repeat(self.n_class)[None]
+        self.mean = torch.tensor((0.,0.,0.,0.), device=cfg.device).repeat(self.n_class)[None]
+        self.std = torch.tensor((.1,.1,.2,.2), device=cfg.device).repeat(self.n_class)[None]
 
         self.score_thresh = .05
     
@@ -75,7 +76,6 @@ class FasterRCNN(nn.Module):
         # 经过RPN提取回归值和分数，并返回NMS后的预测框
         rpn_locs, rpn_scores, rois, roi_indices, anchor = self.rpn(features, img_size, scale)
 
-        # 非训练阶段，直接返回ROI
         if not self.training:
             roi_locs, roi_scores = self.head(features, rois)
             return roi_locs, roi_scores, rois
@@ -87,6 +87,7 @@ class FasterRCNN(nn.Module):
         rpn_loc = rpn_locs[0]
         roi = rois        
 
+        # 筛选相应数量的正负样本，并计算位置回归的修正系数和标签
         sample_roi, gt_head_loc, gt_head_label = self.proposal_target_creator(roi, target_box, target_label)        
         head_loc, head_score = self.head(features, sample_roi)
 
@@ -112,8 +113,23 @@ class FasterRCNN(nn.Module):
         roi_cls_loss = F.cross_entropy(head_score, gt_head_label.to(cfg.device))
         losses = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss
 
-        return losses    
+        return losses 
 
+    def get_optimizer(self):
+        # 获取梯度更新的方式,以及 放大 对网络权重中 偏置项 的学习率
+        lr = cfg.lr
+        params = []
+        for key, value in dict(self.named_parameters()).items():
+            if value.requires_grad:
+                if 'bias' in key:
+                    params += [{'params': [value], 'lr': lr * 2, 'weight_decay': 0}]
+                else:
+                    params += [{'params': [value], 'lr': lr, 'weight_decay': cfg.weight_decay}]
+        if cfg.use_sgd:
+            self.optimizer = torch.optim.SGD(params, momentum=0.9)
+        else:
+            self.optimizer = torch.optim.Adam(params)
+        return self.optimizer
 
     @torch.no_grad()
     def predict(self, imgs,sizes=None):
@@ -158,6 +174,34 @@ class FasterRCNN(nn.Module):
             scores.append(pred_score)
             #   [array([0.80108094, 0.80108094, 0.80108094, 0.80108094], dtype=float32)]
         return boxes, labels, scores
+
+    def _suppress(self, pred_boxes, pred_scores):
+        """
+        对Faster-RCNN网络最终预测的box与score进行score筛选以及nms
+        1.循环所有的标注类,在循环中过滤出那些类得分在self.score_thresh之下的cls_box与cls_score。
+        2.随后进行batch_nms.随后就将经过nms筛选的box,score以及新建的label分别整合到一起并返回这三个值
+        :param pred_bbox: rpn网络提供的roi,经过roi_head网络提供的loc再次修正得到的 torch.Size([300, self.n_class, 4])
+        :param pred_scores: roi_head网络提供各个类的置信度 torch.Size([300, self.n_class])
+        :return: faster-rcnn网络预测的目标框坐标,种类,种类的置信度
+        """
+        
+        # 生成20类id，不包含背景，[0,1,...,19] -> (20,) -> (1,20)
+        # 之后重复为所有box生成 (n_boxs,20)
+        cls_ids = torch.arange(self.n_class-1)[None].repeat(pred_boxes.shape[0], 1)
+
+        # 过滤得分低于self.score_thresh的score
+        score_keep = pred_scores > self.score_thresh
+        # (n_boxs,)
+        pred_boxes = pred_boxes[score_keep].reshape(-1,4)
+        pred_scores = pred_scores[score_keep].flatten()
+        cls_ids = cls_ids[score_keep].flatten()
+
+        # 这里使用batch_nms速度会快一些,A100上 35/sec -> 41/sec
+        keep = batched_nms(pred_boxes.cpu(), pred_scores.cpu(), cls_ids.cpu(), self.nms_thresh)
+        box = pred_boxes[keep].cpu().numpy()
+        score = pred_scores[keep].cpu().numpy()
+        label = cls_ids[keep].cpu().numpy()
+        return box, label, score
     
     def get_optim(self):
         # 获取梯度更新的方式,以及 放大 对网络权重中 偏置项 的学习率

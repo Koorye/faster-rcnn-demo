@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torchvision.ops import RoIPool
 
+from config import cfg
 from model.util.tool import normal_init
 
 
@@ -39,17 +40,16 @@ class RoIHead(nn.Module):
             roi_scores: RoIHead网络提供的roi各类置信度 -> (128, n_class)
         """
 
-        device = x.device
         # (128,1) cat (128,4) -> (128,5) -> (0,xmin,ymin,xmax,ymax)
         # 第一列全为0，表示batch_id
         rois = torch.cat(
-            (torch.zeros((rois.shape[0], 1), device=device), rois), 1)
+            (torch.zeros((rois.shape[0], 1), device=cfg.device), rois), 1)
 
         # rois = rois[:, [0, 2, 1, 4, 3]]  # ind, y x y x -> ind x y x y
 
         # (n_rois,c,7,7)
         # 即每个roi都在特征图上进行一次近似的自适应最大值池化
-        pool = self.roi(x, rois)
+        pool = self.roi(x.cpu(), rois.cpu()).to(cfg.device)
         # (n_rois,c*7*7)
         pool = pool.reshape(pool.shape[0], -1)
 
@@ -59,6 +59,3 @@ class RoIHead(nn.Module):
         roi_scores = self.score(fc7)
 
         return roi_locs, roi_scores
-
-if __name__ == '__main__':
-    pass

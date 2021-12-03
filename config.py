@@ -4,7 +4,7 @@ class Config:
                'chair', 'cow', 'diningtable', 'dog',
                'horse', 'motorbike', 'person', 'pottedplant',
                'sheep', 'sofa', 'train', 'tvmonitor')
-    device = 'cpu'
+    device = 'cuda'
 
     # RPN阶段的NMS阈值
     nms_rpn = .7

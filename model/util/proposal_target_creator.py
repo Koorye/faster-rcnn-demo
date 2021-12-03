@@ -3,6 +3,7 @@ import torch
 from config import cfg
 from model.util.box_tool import box2loc, box_iou
 
+
 class ProposalTargetCreator(object):
     """
     就像类名一样 生成Proposal对应的Target Proposal是由rpn提供的
@@ -27,54 +28,78 @@ class ProposalTargetCreator(object):
         self.pos_iou_thresh = pos_iou_thresh
         self.neg_iou_thresh_hi = neg_iou_thresh_hi
         self.neg_iou_thresh_lo = neg_iou_thresh_lo  # 注意:在py-faster-rcnn中 该值默认为0.1
-        self.loc_normalize_mean = torch.Tensor((0., 0., 0., 0.), device=cfg.device)
-        self.loc_normalize_std = torch.Tensor((0.1, 0.1, 0.2, 0.2), device=cfg.device)
+        self.loc_normalize_mean = torch.tensor(
+            (0., 0., 0., 0.), device=cfg.device)
+        self.loc_normalize_std = torch.tensor(
+            (0.1, 0.1, 0.2, 0.2), device=cfg.device)
 
-    def __call__(self, roi, target_box, label, ):
+    def __call__(self, roi, target_box, label):
         """
         :param roi: rpn网络提供的roi,理论上训练阶段为(2000,4) 测试阶段为(300,4)
         :param target_box: 真实标注物体的坐标 (n,4) n为一张图片中真实标注物体的个数
         :param target_label: 真实标注物体的种类索引 (n,)
-        :param loc_normalize_mean
-        :param loc_normalize_std: 坐标的标准方差
         :return: 128(理论)个正负样本roi的坐标, roi与target_box修正系数, 128(理论)个正负样本roi的label
         """
-        # 这里将target_box也并入到roi中去 这里可以将roi当做RPN阶段的"anchor",只不过是动态的,
-        # 将target_box添加到roi中是为了更好的收敛ROIHead网络而做的操作,训练初期RPN阶段提供的roi不管是从质量还是数量来说都不高,这里算是弥补了一些
+
+        # 这里将target_box也并入到roi中去，这里可以将roi当做RPN阶段的"anchor"，只不过是动态的
+        # 将target_box添加到roi中是为了更好的收敛ROIHead网络而做的操作
+        # 训练初期RPN阶段提供的roi不管是从质量还是数量来说都不高,这里算是弥补了一些
         roi = torch.cat((roi, target_box), dim=0)
+
+        # 计算正样本的数量
         pos_roi_per_image = round(self.n_sample * self.pos_ratio)
+
+        # 计算ROI和真实坐标的iou
         iou = box_iou(roi, target_box)
-        # 每个roi和target_boxes的最大iou索引 每个roi和n个tartget_box的最大iou
+
+        # 每个roi和target_boxes的最大iou和索引
         max_iou, gt_assignment = iou.max(dim=1)
+
         # 将所有种类索引+1(所有label>=1,0为下面的负样本所准备的),并且此时为所有roi赋予label.值为与其iou最大的target_box的label值
-        gt_roi_label = label[gt_assignment] + 1  # (roi.shape[0],)
+        # 0作为背景类
+        gt_roi_label = label[gt_assignment] + 1
 
         # 获取那些IOU大于pos_iou_thresh的roi索引
         pos_index = torch.nonzero(max_iou >= self.pos_iou_thresh)
         pos_num = pos_index.numel()
+        # 取理论要达到的正样本数量和过滤后的正样本数量的最小值作为最终的正样本数量
         pos_roi_per_this_image = int(min(pos_roi_per_image, pos_num))
-        if pos_num > 0:  # 兼容 0-d tensor
-            # pos_index = np.random.choice(pos_index, size=pos_roi_per_this_image, replace=False)
-            pos_index = pos_index[torch.randperm(pos_num)[:pos_roi_per_this_image]]
-        # 获取那些IOU在[neg_iou_thresh_lo, neg_iou_thresh_hi)区间的roi索引
+        # 随机抽取上述数量的正样本下标
+        if pos_num > 0:
+            pos_index = pos_index[torch.randperm(
+                pos_num)[:pos_roi_per_this_image]]
+
+        # 获取iou在[neg_iou_thresh_lo, neg_iou_thresh_hi)区间的roi索引
         # 其实这里感觉分配的不是很合理,因为IOU=0.49与0.51在数值上区别很小.人眼更是几乎看不出来(除非写轮眼)  hi↑ lo↓ ?
-        neg_index = torch.nonzero((max_iou < self.neg_iou_thresh_hi) & (max_iou >= self.neg_iou_thresh_lo))
+        neg_index = torch.nonzero((max_iou < self.neg_iou_thresh_hi)
+                                  & (max_iou >= self.neg_iou_thresh_lo))
+
+        # 获取过滤后负样本的数量
         neg_num = neg_index.numel()
         # 计算每张图片中理论上的负样本个数
         neg_roi_per_this_image = self.n_sample - pos_roi_per_this_image
+        # 取理论负样本数量和过滤后负样本数量的最小值作为最终的负样本数量
         neg_roi_per_this_image = int(min(neg_roi_per_this_image, neg_num))
+        # 随机抽取上述数量的负样本下标
         if neg_num > 0:
-            neg_index = neg_index[torch.randperm(neg_num)[:neg_roi_per_this_image]]
+            neg_index = neg_index[torch.randperm(
+                neg_num)[:neg_roi_per_this_image]]
+
         # 将正负样本的roi索引合并到一起
         keep_index = torch.cat((pos_index, neg_index)).squeeze()
         # 从所有roi中挑选出正负样本的label
         gt_roi_label = gt_roi_label[keep_index]
+
         # 将负样本的label置为0
         gt_roi_label[pos_roi_per_this_image:] = 0
         sample_roi = roi[keep_index]
-        # 计算修正系数    roi和其最大iou的target_box的loc
+
+        # 计算修正系数
+        # 即roi和其最大iou的target_box的loc
         gt_roi_loc = box2loc(sample_roi, target_box[gt_assignment[keep_index]])
+
         # 这里的减均值除以方差以及非训练阶段roi网络最后出来的roi_loc还要乘方差加均值
-        gt_roi_loc = (gt_roi_loc - self.loc_normalize_mean) / self.loc_normalize_std
+        gt_roi_loc = ((gt_roi_loc - self.loc_normalize_mean)
+                      / self.loc_normalize_std)
 
         return sample_roi, gt_roi_loc, gt_roi_label
