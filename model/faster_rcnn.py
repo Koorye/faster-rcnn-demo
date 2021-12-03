@@ -74,6 +74,7 @@ class FasterRCNN(nn.Module):
         features = self.extractor(x)
 
         # 经过RPN提取回归值和分数，并返回NMS后的预测框
+        # 此处roi理论为2000个
         rpn_locs, rpn_scores, rois, roi_indices, anchor = self.rpn(features, img_size, scale)
 
         if not self.training:
@@ -88,7 +89,11 @@ class FasterRCNN(nn.Module):
         roi = rois        
 
         # 筛选相应数量的正负样本，并计算位置回归的修正系数和标签
-        sample_roi, gt_head_loc, gt_head_label = self.proposal_target_creator(roi, target_box, target_label)        
+        # 此处理论上筛选128个roi，包括正负样本
+        sample_roi, gt_head_loc, gt_head_label = self.proposal_target_creator(roi, target_box, target_label)
+                
+        # 对每个样本提取回归系数和分数
+        # 理论值 (128,n_class*4), (128,n_class)
         head_loc, head_score = self.head(features, sample_roi)
 
         # ------------------ 计算 RPN losses -------------------#

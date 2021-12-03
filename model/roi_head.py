@@ -34,7 +34,7 @@ class RoIHead(nn.Module):
     def forward(self, x, rois):
         """
         : param x: vgg16网络提取的特征 -> (1,c,h,w)
-        : param rois: RPN网络提供的roi -> (128,4) 128个正样本，每个样本拥有(xmin,ymin,xmax,ymax)
+        : param rois: RPN网络提供的roi -> (128,4) 128个样本，每个样本拥有(xmin,ymin,xmax,ymax)
         return:
             roi_locs: RoIHead网络提供的roi修正系数 -> (128, n_class*4)
             roi_scores: RoIHead网络提供的roi各类置信度 -> (128, n_class)

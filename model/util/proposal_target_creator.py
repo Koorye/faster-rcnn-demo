@@ -55,7 +55,8 @@ class ProposalTargetCreator(object):
         # 每个roi和target_boxes的最大iou和索引
         max_iou, gt_assignment = iou.max(dim=1)
 
-        # 将所有种类索引+1(所有label>=1,0为下面的负样本所准备的),并且此时为所有roi赋予label.值为与其iou最大的target_box的label值
+        # 将所有种类索引+1(所有label>=1,0为下面的负样本所准备的),并且此时为所有roi赋予label
+        # 值为与其iou最大的target_box的label值
         # 0作为背景类
         gt_roi_label = label[gt_assignment] + 1
 
@@ -70,7 +71,6 @@ class ProposalTargetCreator(object):
                 pos_num)[:pos_roi_per_this_image]]
 
         # 获取iou在[neg_iou_thresh_lo, neg_iou_thresh_hi)区间的roi索引
-        # 其实这里感觉分配的不是很合理,因为IOU=0.49与0.51在数值上区别很小.人眼更是几乎看不出来(除非写轮眼)  hi↑ lo↓ ?
         neg_index = torch.nonzero((max_iou < self.neg_iou_thresh_hi)
                                   & (max_iou >= self.neg_iou_thresh_lo))
 
