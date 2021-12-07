@@ -8,10 +8,10 @@ def loc2box(src_box, loc):
     已知预测框和修正参数,求目标框
     利用平移和尺度放缩修正P_box以得到^G_box 然后将^G_box与G_box进行计算损失
     参考 https://blog.csdn.net/zijin0802034/article/details/77685438/
-    ^G_box_y = p_h*t_y + p_y`
     ^G_box_x = p_w*t_x + p_x`
-    ^G_box_h = p_h*exp(t_h)`
+    ^G_box_y = p_h*t_y + p_y`
     ^G_box_w = p_w*exp(t_w)`
+    ^G_box_h = p_h*exp(t_h)`
     : param src_bbox (array): `p_{xmin}, p_{ymin}, p_{xmax}, p_{ymax}`. (R,4)
     : param loc (array): `t_x, t_y, t_w, t_h`.  (R,4)
     return: dst_box 修正后的^G_box -> (R, 4)，R是预测的框数量，第二维度的数据形式与src_bbox相同

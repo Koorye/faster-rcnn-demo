@@ -44,9 +44,9 @@ for path,img_detection,size in zip(imgs_path,img_detections,imgs_size):
     for box,label,score in zip(*img_detection):
         box, label, score = box.tolist(), label.tolist(), score.tolist()
         # 对一张图片中预测的每个box进行处理
-        for (y1,x1,y2,x2),l,s in zip(box,label,score):
+        for (x1,y1,x2,y2),l,s in zip(box,label,score):
             # 对预测出的坐标进行缩放
-            y1, x1, y2, x2 = y1*(w/size[1]), x1*(w/size[1]), y2*(w/size[1]), x2*(w/size[1])
+            x1, y1, x2, y2 = x1*(w/size[1]), y1*(w/size[1]), x2*(w/size[1]), y2*(w/size[1])
             content = '{} {:.2f}'.format(cfg.classes[l], s)
             label_w, label_h = draw.textsize(content,content_font)
             for i in range(thickness):
