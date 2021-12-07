@@ -64,12 +64,12 @@ def box2loc(src_box, dst_box):
 def box_iou(box_a, box_b):
     # 计算 N个box与M个box的iou需要使用到numpy的广播特性
     # tl为交叉部分左上角坐标最大值, tl.shape -> (N,M,2)
-    tl = torch.max(box_a[:, None, :2], box_b[:, :2])
+    lt = torch.max(box_a[:, None, :2], box_b[:, :2])
     # br为交叉部分右下角坐标最小值
-    br = torch.min(box_a[:, None, 2:], box_b[:, 2:])
+    rb = torch.min(box_a[:, None, 2:], box_b[:, 2:])
     # 第一个axis是指定某一个box内宽高进行相乘,第二个axis是筛除那些没有交叉部分的box
     # 这个 < 和 all(axis=2) 是为了保证右下角的xy坐标必须大于左上角的xy坐标,否则最终没有重合部分的box公共面积为0
-    area_i = torch.prod(br - tl, dim=2) * (tl < br).all(dim=2)
+    area_i = torch.prod(rb - lt, dim=2) * (lt < rb).all(dim=2)
     # 分别计算bbox_a,bbox_b的面积,以及最后的iou
     area_a = torch.prod(box_a[:, 2:] - box_a[:, :2], dim=1)
     area_b = torch.prod(box_b[:, 2:] - box_b[:, :2], dim=1)
@@ -79,12 +79,12 @@ def box_iou(box_a, box_b):
 def box_iou_numpy(box_a, box_b):
     # 计算 N个box与M个box的iou需要使用到numpy的广播特性
     # tl为交叉部分左上角坐标最大值, tl.shape -> (N,M,2)
-    tl = np.maximum(box_a[:, np.newaxis, :2], box_b[:, :2])
+    lt = np.maximum(box_a[:, np.newaxis, :2], box_b[:, :2])
     # br为交叉部分右下角坐标最小值
-    br = np.minimum(box_a[:, np.newaxis, 2:], box_b[:, 2:])
+    rb = np.minimum(box_a[:, np.newaxis, 2:], box_b[:, 2:])
     # 第一个axis是指定某一个box内宽高进行相乘,第二个axis是筛除那些没有交叉部分的box
     # 这个 < 和 all(axis=2) 是为了保证右下角的xy坐标必须大于左上角的xy坐标,否则最终没有重合部分的box公共面积为0
-    area_i = np.prod(br - tl, axis=2) * (tl < br).all(axis=2)
+    area_i = np.prod(rb - lt, axis=2) * (lt < rb).all(axis=2)
     # 分别计算bbox_a,bbox_b的面积,以及最后的iou
     area_a = np.prod(box_a[:, 2:] - box_a[:, :2], axis=1)
     area_b = np.prod(box_b[:, 2:] - box_b[:, :2], axis=1)
