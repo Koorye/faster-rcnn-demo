@@ -12,7 +12,7 @@ import os
 class ListDataset(Dataset):
     def __init__(self, cfg, split='trainval', is_train=False):
         self.data_dir = cfg.train_dir if is_train else cfg.val_dir
-        id_list_file = os.path.join(cfg.train_dir, '{0}.txt'.format(split))
+        id_list_file = os.path.join(cfg.train_dir, f'{split}.txt')
         self.ids = [id_.strip() for id_ in open(id_list_file)]
         self.ignore_difficult = is_train
         self.normalize = T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -150,14 +150,5 @@ def random_flip(img, x_random=False, y_random=False, return_param=False, copy=Fa
 
 if __name__ == '__main__':
     from config import cfg
-    trainset = ListDataset(cfg, 'train', is_train=True)
-    testset = ListDataset(cfg, 'test', is_train=False)
-
-    for index, data in enumerate(trainset):
-        if index % 100 == 0:
-            print(index)
-
-    for index, data in enumerate(testset):
-        if index % 100 == 0:
-            print(index)
-
+    trainset = ListDataset(cfg, 'ImageSets/Main/train', is_train=True)
+    print(trainset[0][1:])
