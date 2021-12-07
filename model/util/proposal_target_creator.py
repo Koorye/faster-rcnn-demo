@@ -32,7 +32,7 @@ class ProposalTargetCreator(object):
         self.loc_normalize_mean = torch.tensor(
             (0., 0., 0., 0.), device=cfg.device)
         self.loc_normalize_std = torch.tensor(
-            (0.1, 0.1, 0.2, 0.2), device=cfg.device)
+            (.1, .1, .2, .2), device=cfg.device)
 
     def __call__(self, roi, target_box, label):
         """

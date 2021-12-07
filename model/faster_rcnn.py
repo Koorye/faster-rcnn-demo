@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torchvision.models import vgg16
+from torchvision.models import vgg16, resnet34
 from torchvision.ops import batched_nms
 from config import cfg
 
@@ -46,9 +46,9 @@ class FasterRCNN(nn.Module):
         # 获取特征提取网络和分类网络
         self.extractor, self.classifier = decom_vgg16()
 
-        self.rpn = RPN().to(cfg.device)
+        self.rpn = RPN()
         self.head = RoIHead(n_class=self.n_class,
-                            classifier=self.classifier).to(cfg.device)
+                            classifier=self.classifier)
 
         self.nms_thresh = cfg.nms_roi
         self.rpn_sigma = cfg.rpn_sigma

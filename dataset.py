@@ -12,7 +12,7 @@ import os
 class ListDataset(Dataset):
     def __init__(self, cfg, split='trainval', is_train=False):
         self.data_dir = cfg.train_dir if is_train else cfg.val_dir
-        id_list_file = os.path.join(cfg.train_dir, 'ImageSets/Main/{0}.txt'.format(split))
+        id_list_file = os.path.join(cfg.train_dir, '{0}.txt'.format(split))
         self.ids = [id_.strip() for id_ in open(id_list_file)]
         self.ignore_difficult = is_train
         self.normalize = T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -36,10 +36,11 @@ class ListDataset(Dataset):
             bndbox_anno = obj.find('bndbox')
             # subtract 1 to make pixel indexes 0-based
             bbox.append([
-                int(bndbox_anno.find(tag).text) - 1
+                int(float(bndbox_anno.find(tag).text)) - 1
                 for tag in ('ymin', 'xmin', 'ymax', 'xmax')])
             name = obj.find('name').text.lower().strip()
             label.append(self.cls_list.index(name))
+        
         box = np.stack(bbox).astype(np.float32)
         label = np.stack(label).astype(np.int32)
         difficult = np.array(difficult, dtype=np.bool).astype(np.uint8)  # PyTorch don't support np.bool
@@ -203,3 +204,17 @@ def random_flip(img, y_random=False, x_random=False, return_param=False, copy=Fa
         return img, {'y_flip': y_flip, 'x_flip': x_flip}
     else:
         return img
+
+if __name__ == '__main__':
+    from config import cfg
+    trainset = ListDataset(cfg, 'train', is_train=True)
+    testset = ListDataset(cfg, 'test', is_train=False)
+
+    for index, data in enumerate(trainset):
+        if index % 100 == 0:
+            print(index)
+
+    for index, data in enumerate(testset):
+        if index % 100 == 0:
+            print(index)
+

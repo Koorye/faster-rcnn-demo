@@ -45,14 +45,11 @@ class RoIHead(nn.Module):
         rois = torch.cat(
             (torch.zeros((rois.shape[0], 1), device=cfg.device), rois), 1)
 
-        # rois = rois[:, [0, 2, 1, 4, 3]]  # ind, y x y x -> ind x y x y
-
         # (n_rois,c,7,7)
         # 即每个roi都在特征图上进行一次近似的自适应最大值池化
         pool = self.roi(x, rois).to(cfg.device)
         # (n_rois,c*7*7)
         pool = pool.reshape(pool.shape[0], -1)
-
         fc7 = self.classifier(pool)
 
         roi_locs = self.loc(fc7)

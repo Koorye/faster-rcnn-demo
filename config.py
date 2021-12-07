@@ -4,7 +4,7 @@ class Config:
                'chair', 'cow', 'diningtable', 'dog',
                'horse', 'motorbike', 'person', 'pottedplant',
                'sheep', 'sofa', 'train', 'tvmonitor')
-    device = 'cuda'
+    device = 'cuda:0'
 
     # RPN阶段的NMS阈值
     nms_rpn = .7
@@ -22,7 +22,7 @@ class Config:
     lr_decay = .1
     # 初始学习率
     lr = 1e-3
-    epoch = 14
+    epoch = 30
     # 是否使用SGD优化器
     use_sgd = True
 
