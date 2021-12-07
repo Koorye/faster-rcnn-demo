@@ -6,10 +6,10 @@ from tqdm import tqdm
 
 
 def Eval(dataloader, model):
-    pred_boxes, pred_labels, pred_scores = list(), list(), list()
-    gt_boxes, gt_labels = list(), list()
+    pred_boxes, pred_labels, pred_scores = [], [], []
+    gt_boxes, gt_labels = [], []
     with torch.no_grad():
-        for imgs, sizes, gt_boxes_, gt_labels_,difficult_ in tqdm(dataloader):
+        for imgs, sizes, gt_boxes_, gt_labels_, _ in tqdm(dataloader):
             sizes = [sizes[0].item(), sizes[1].item()]
             imgs = imgs.cuda()
             pred_boxes_, pred_labels_, pred_scores_ = model.predict(imgs, sizes)
@@ -25,7 +25,7 @@ def Eval(dataloader, model):
 def eval_detection_voc(pred_boxes, pred_labels, pred_scores, gt_boxes, gt_labels, iou_thresh=0.5):
     # 计算precision与recall
     p, r, ap, f1, cls = calc_pr(pred_boxes, pred_labels, pred_scores, gt_boxes, gt_labels, iou_thresh=iou_thresh)
-    return p, r, ap, f1, cls,
+    return p, r, ap, f1, cls
 
 
 def calc_pr(pred_boxes, pred_labels, pred_scores, gt_boxes, gt_labels, iou_thresh=0.5):

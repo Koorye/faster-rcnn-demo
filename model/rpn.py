@@ -128,9 +128,9 @@ class RPN(nn.Module):
         shift_y = torch.arange(0, feature_h * self.feat_stride, self.feat_stride, dtype=torch.float32,device=cfg.device)
         shift_x = torch.arange(0, feature_w * self.feat_stride, self.feat_stride, dtype=torch.float32,device=cfg.device)
 
-        # (h,w)
+        # (h,w) (h,w)
         shift_y, shift_x = torch.meshgrid(shift_y, shift_x)
-        # (h,w,2) -> (h,w,4)
+        # (h*w) <stack> (h*w) -> (h*w,2) -> (h*w,4)
         # 表示xmin,ymin,xmax,ymax分别需要平移的坐标
         shift = torch.stack((torch.flatten(shift_x), torch.flatten(shift_y)), 1).repeat(1, 2)
 

@@ -41,8 +41,7 @@ class RoICreator:
             n_pre_nms = self.n_test_pre_nms
             n_post_nms = self.n_test_post_nms
         
-        # (x1,y1,x2,y2)
-        # (n_anchors,4)
+        # (n_anchors,4) -> (x1,y1,x2,y2)
         roi = loc2box(anchor, loc)
 
         # 限制roi的坐标范围，x在0~w范围内，y在0~h范围内
@@ -57,7 +56,8 @@ class RoICreator:
         min_size = self.min_size * scale
         ws = roi[:, 2] - roi[:, 0]
         hs = roi[:, 3] - roi[:, 1]
-        keep = torch.nonzero((hs >= min_size) & (ws >= min_size)).squeeze()  # 返回shape(n,1) 所以要squeeze操作
+        # (n_anchors,1) -> (n_anchors,)
+        keep = torch.nonzero((ws >= min_size) & (hs >= min_size)).squeeze()
         roi = roi[keep]
         score = score[keep]
 

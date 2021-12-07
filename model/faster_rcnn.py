@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torchvision.models import vgg16, resnet34
+from torchvision.models import vgg16
 from torchvision.ops import batched_nms
 from config import cfg
 
@@ -199,8 +199,8 @@ class FasterRCNN(nn.Module):
             pred_boxes = pred_boxes.view(-1, self.n_class, 4)
 
             # 限制预测框的坐标范围
-            pred_boxes[:, :, 0::2].clamp_(min=0, max=size[0])
-            pred_boxes[:, :, 1::2].clamp_(min=0, max=size[1])
+            pred_boxes[:, :, 0::2].clamp_(min=0, max=size[1])
+            pred_boxes[:, :, 1::2].clamp_(min=0, max=size[0])
 
             # 对roi_head网络预测的每类进行softmax处理
             pred_scores = F.softmax(roi_scores, dim=1)

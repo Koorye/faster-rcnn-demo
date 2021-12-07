@@ -43,22 +43,22 @@ def box2loc(src_box, dst_box):
     :param dst_box: 同上
     :return: 修正系数 shape -> (R, 4)
     """
-    src_h = src_box[:, 2] - src_box[:, 0]
-    src_w = src_box[:, 3] - src_box[:, 1]
-    src_y = src_box[:, 0] + 0.5 * src_h
-    src_x = src_box[:, 1] + 0.5 * src_w
+    src_w = src_box[:, 2] - src_box[:, 0]
+    src_h = src_box[:, 3] - src_box[:, 1]
+    src_x = src_box[:, 0] + 0.5 * src_w
+    src_y = src_box[:, 1] + 0.5 * src_h
 
-    dst_h = dst_box[:, 2] - dst_box[:, 0]
-    dst_w = dst_box[:, 3] - dst_box[:, 1]
-    dst_y = dst_box[:, 0] + 0.5 * dst_h
-    dst_x = dst_box[:, 1] + 0.5 * dst_w
+    dst_w = dst_box[:, 2] - dst_box[:, 0]
+    dst_h = dst_box[:, 3] - dst_box[:, 1]
+    dst_x = dst_box[:, 0] + 0.5 * dst_w
+    dst_y = dst_box[:, 1] + 0.5 * dst_h
 
-    dy = (dst_y - src_y) / (src_h + 1e-8)
     dx = (dst_x - src_x) / (src_w + 1e-8)
-    dh = torch.log(dst_h / (src_h + 1e-8))
+    dy = (dst_y - src_y) / (src_h + 1e-8)
     dw = torch.log(dst_w / (src_w + 1e-8))
+    dh = torch.log(dst_h / (src_h + 1e-8))
 
-    loc = torch.stack((dy, dx, dh, dw), dim=1)
+    loc = torch.stack((dx, dy, dw, dh), dim=1)
     return loc
 
 def box_iou(box_a, box_b):
@@ -92,9 +92,6 @@ def box_iou_numpy(box_a, box_b):
     return iou
 
 def unmap(data, anchor, inside_index):
-    """
-    
-    """
     if len(data.shape) == 1:
         # 如果是对label进行映射,则默认值为-1(忽略样本)
         ret = torch.full_like(anchor[:,0],fill_value=-1, dtype=torch.int32)
@@ -113,7 +110,7 @@ def get_inside_index(anchor, h, w):
     index_inside = torch.nonzero(
         (anchor[:, 0] >= 0) &
         (anchor[:, 1] >= 0) &
-        (anchor[:, 2] <= h) &
-        (anchor[:, 3] <= w)
+        (anchor[:, 2] <= w) &
+        (anchor[:, 3] <= h)
     ).squeeze()
     return index_inside
