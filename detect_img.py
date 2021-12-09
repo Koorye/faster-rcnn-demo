@@ -1,8 +1,10 @@
 import colorsys
 import cv2
 import numpy as np
+import os
 import torch
 from PIL import Image, ImageFont, ImageDraw
+from tqdm import tqdm
 
 from config import cfg
 from dataset import ImageFolder
@@ -11,7 +13,12 @@ from model.faster_rcnn import FasterRCNN
 
 dection_imgs = ImageFolder('data/test_img')
 model = FasterRCNN().cuda()
-model.load_state_dict(torch.load('weights/epoch7_map0.16546011649471776.pth')['model'])
+paths = os.listdir('weights')
+if len(paths) != 0:
+    last_epoch = max(list(map(lambda path: int(path.split('_')[0].split('epoch')[1]), paths)))
+    cur_epoch = last_epoch + 1
+    last_path = list(filter(lambda path: path.startswith(f'epoch{last_epoch}'), paths))[0]
+    model.load(f'weights/{last_path}')
 model.eval()
 
 # 为每个类名配置不同的颜色
@@ -25,11 +32,11 @@ img_detections = []  # 每张图片的检测结果
 imgs_size = []
 
 # 先保存检测所得结果
-for path, img, size in dection_imgs:
-    img = img.unsqueeze(0)
+for path, img, size in tqdm(dection_imgs):
+    img = img.unsqueeze(0).cuda()
     imgs_path.append(path)
     with torch.no_grad():
-        pred_boxes_, pred_labels_, pred_scores_ = model.predict(img.cuda(), size)
+        pred_boxes_, pred_labels_, pred_scores_ = model.predict(img, size)
         imgs_size.append(size)
         img_detections.append([pred_boxes_, pred_labels_, pred_scores_])
 
@@ -54,5 +61,6 @@ for path,img_detection,size in zip(imgs_path,img_detections,imgs_size):
                 draw.rectangle([x1, y1 - label_h, x1 + label_w, y1], fill=colors[l])
                 draw.text((x1, y1 - label_h), content, fill=(0, 0, 0),font=content_font)
         PIL_img = np.array(PIL_img)[...,::-1]
-        cv2.imshow('result',PIL_img)
-        cv2.waitKey(0)
+        if len(box) > 0:
+            cv2.imshow('result',PIL_img)
+            cv2.waitKey(0)

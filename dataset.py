@@ -78,10 +78,8 @@ class ImageFolder(Dataset):
         img_path = self.files[index]
         # 这里使用convert是防止使用png图片或其他格式时会有多个通道而引起的报错,
         img = T.ToTensor()(Image.open(img_path).convert('RGB'))
-        # img = np.asarray(Image.open(img_path), dtype=np.float32).transpose((2, 0, 1))
-        img = img / 255.
-        in_c, in_h, in_w = img.shape
-        # img = preprocess(img)
+        
+        _, in_h, in_w = img.shape
         # 缩放到最小比例,这样最终长和宽都能放缩到规定的尺寸
         scale1 = 600 / min(in_h, in_w)
         scale2 = 1000 / max(in_h, in_w)
